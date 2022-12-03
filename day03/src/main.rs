@@ -1,10 +1,29 @@
 type Item = char;
 
-type Backpack = (Vec<char>, Vec<char>);
+type BackpackWithCompartments = (Vec<char>, Vec<char>);
 
-pub fn parse(s: &str) -> Backpack {
-    let (first, second) = s.split_at(s.len() / 2);
-    return (first.chars().collect(), second.chars().collect());
+#[derive(Clone)]
+struct Backpack {
+    items: Vec<Item>,
+}
+
+impl Backpack {
+    fn split(self) -> (Vec<Item>, Vec<Item>) {
+        let (a, b) = self.items.split_at(self.items.len() / 2);
+        return (a.to_vec(), b.to_vec());
+    }
+}
+
+impl From<&str> for Backpack {
+    fn from(item: &str) -> Self {
+        Backpack {
+            items: item.chars().collect(),
+        }
+    }
+}
+
+fn parse(s: &str) -> BackpackWithCompartments {
+    return Backpack::from(s).split();
 }
 
 fn item_priority(item: Item) -> Result<i32, (Item, i32)> {
@@ -16,15 +35,15 @@ fn item_priority(item: Item) -> Result<i32, (Item, i32)> {
     };
 }
 
-fn items_intersect(a: Vec<char>, b: Vec<char>) -> Vec<char> {
-    let mut result: Vec<char> = a.iter().filter(|char| b.contains(char)).copied().collect();
+fn items_intersect(a: Vec<Item>, b: Vec<Item>) -> Vec<Item> {
+    let mut result: Vec<Item> = a.iter().filter(|char| b.contains(char)).copied().collect();
 
     result.dedup();
 
     return result;
 }
 
-fn backpack_priority(backpack: Backpack) -> i32 {
+fn backpack_priority(backpack: BackpackWithCompartments) -> i32 {
     return items_intersect(backpack.0, backpack.1).iter().map(|c| item_priority(*c).unwrap()).sum();
 }
 
@@ -35,20 +54,47 @@ fn sum_priorities(s: &str) -> i32 {
         .sum()
 }
 
+fn find_group_item(group: Vec<Backpack>) -> Item {
+    return group.iter()
+        .map(|b| b.items.clone())
+        .reduce(|acc, item| items_intersect(acc, item))
+        .unwrap()
+        .first()
+        .unwrap()
+        .clone();
+}
+
+fn sum_group_item_priorities(s: &str) -> i32 {
+    return s.lines()
+        .map(|b| Backpack::from(b))
+        .collect::<Vec<Backpack>>()
+        .chunks(3)
+        .map(|group| find_group_item(group.to_vec()))
+        .map(|i| item_priority(i).unwrap())
+        .sum::<i32>();
+}
+
 fn main() {
     println!(
         "Part One: {}",
         sum_priorities(include_str!("../input.txt")),
     );
+
+    println!(
+        "Part Two: {}",
+        sum_group_item_priorities(include_str!("../input.txt")),
+    )
 }
 
 #[cfg(test)]
 mod tests {
+    use std::vec;
+
     use super::*;
 
     #[test]
     fn test_parse() {
-        assert_eq!(("vJrwpWtwJgWr".chars().collect(), "hcsFMMfFFhFp".chars().collect()), parse("vJrwpWtwJgWrhcsFMMfFFhFp"))
+        assert_eq!(("vJrwpWtwJgWr".chars().collect(), "hcsFMMfFFhFp".chars().collect()), Backpack::from("vJrwpWtwJgWrhcsFMMfFFhFp").split())
     }
 
     #[test]
@@ -89,5 +135,16 @@ ttgJtRGJQctTZtZT
 CrZsJsPPZsGzwwsLwLmpwMDw";
 
         assert_eq!(157, sum_priorities(input));
+    }
+
+    #[test]
+    fn test_find_group_item() {
+        assert_eq!('r', find_group_item("vJrwpWtwJgWrhcsFMMfFFhFp
+jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL
+PmmdzqPrVvPwwTWBwg".lines().map(|b| Backpack::from(b)).collect()));
+
+        assert_eq!('Z', find_group_item("wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn
+ttgJtRGJQctTZtZT
+CrZsJsPPZsGzwwsLwLmpwMDw".lines().map(|b| Backpack::from(b)).collect()));
     }
 }
