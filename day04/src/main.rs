@@ -1,4 +1,4 @@
-ay use std::str::FromStr;
+use std::str::FromStr;
 
 #[derive(Debug, PartialEq)]
 struct Pair {
@@ -9,6 +9,10 @@ struct Pair {
 impl Pair {
     fn contains(&self) -> bool {
         return self.left.contains(self.right) || self.right.contains(self.left);
+    }
+
+    fn overlaps(&self) -> bool {
+        return self.left.overlaps(self.right);
     }
 }
 
@@ -42,6 +46,13 @@ impl Assignment {
 
         return start <= other_start && end >= other_end;
     }
+
+    fn overlaps(&self, other: Self) -> bool {
+        let (start, end) = self.assignment;
+        let (other_start, other_end) = other.assignment;
+
+        return end >= other_start && other_end >= start;
+    }
 }
 
 impl From<(i32, i32)> for Assignment {
@@ -68,13 +79,21 @@ fn how_many_assignment_pairs_fully_contain_the_other(pairs: Vec<Pair>) -> i32 {
     return pairs.iter().filter(|p| p.contains()).count() as i32;
 }
 
+fn how_many_assignment_pairs_overlap_the_other(pairs: Vec<Pair>) -> i32 {
+    return pairs.iter().filter(|p| p.overlaps()).count() as i32;
+}
+
 fn main() {
     let input = include_str!("../input.txt");
-    let pairs = input.lines().map(|s| Pair::from(s));
 
     println!(
         "Part One: {}",
-        how_many_assignment_pairs_fully_contain_the_other(pairs.collect()),
+        how_many_assignment_pairs_fully_contain_the_other(input.lines().map(|s| Pair::from(s)).collect()),
+    );
+
+    println!(
+        "Part Two: {}",
+        how_many_assignment_pairs_overlap_the_other(input.lines().map(|s| Pair::from(s)).collect()),
     );
 }
 
@@ -98,6 +117,19 @@ mod test {
         // 567..
         assert_eq!(false, Pair::from("16-38,15-37").contains());
         assert_eq!(false, Pair::from("3-3,4-91").contains());
+    }
+
+    #[test]
+    fn test_pair_overlaps() {
+        assert_eq!(false, Pair::from("2-4,6-8").overlaps());
+        assert_eq!(false, Pair::from("3-3,4-91").overlaps());
+
+        // .678.
+        // 567..
+        assert_eq!(true, Pair::from("16-38,15-37").overlaps());
+        assert_eq!(true, Pair::from("6-6,4-6").overlaps());
+        assert_eq!(true, Pair::from("5-7,7-9").overlaps());
+        assert_eq!(true, Pair::from("2-8,3-7").overlaps());
     }
 
     #[test]
