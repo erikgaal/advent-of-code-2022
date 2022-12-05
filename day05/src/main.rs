@@ -8,11 +8,17 @@ struct Supply {
 type Crate = char;
 
 impl Supply {
-    fn move_crates(&mut self, amount: i32, from: usize, to: usize) {
+    fn move_crates(&mut self, amount: usize, from: usize, to: usize) {
         for _i in 0..amount {
             let carry = self.stacks.get_mut(from - 1).unwrap().pop().unwrap();
             self.stacks.get_mut(to - 1).unwrap().push(carry);
         }
+    }
+
+    fn move_multiple_crates(&mut self, amount: usize, from: usize, to: usize) {
+        let from_stack = self.stacks.get_mut(from - 1).unwrap();
+        let mut carry = from_stack.split_off(from_stack.len() - amount);
+        self.stacks.get_mut(to - 1).unwrap().append(&mut carry);
     }
 
     fn message(&self) -> String {
@@ -24,6 +30,12 @@ impl Supply {
     fn apply(&mut self, procedure: Procedure) {
         for (amount, from, to) in procedure.steps {
             self.move_crates(amount, from, to);
+        }
+    }
+
+    fn apply_multiple(&mut self, procedure: Procedure) {
+        for (amount, from, to) in procedure.steps {
+            self.move_multiple_crates(amount, from, to);
         }
     }
 }
@@ -62,7 +74,7 @@ struct Procedure {
     steps: Vec<Step>,
 }
 
-type Step = (i32, usize, usize);
+type Step = (usize, usize, usize);
 
 impl From<&str> for Procedure {
     fn from(input: &str) -> Self {
@@ -71,7 +83,7 @@ impl From<&str> for Procedure {
         return Procedure {
             steps: re.captures_iter(input)
                 .map(|cap| (
-                    cap.get(1).unwrap().as_str().parse::<i32>().unwrap(),
+                    cap.get(1).unwrap().as_str().parse::<usize>().unwrap(),
                     cap.get(2).unwrap().as_str().parse::<usize>().unwrap(),
                     cap.get(3).unwrap().as_str().parse::<usize>().unwrap(),
                 ))
@@ -93,6 +105,15 @@ fn main() {
     let (mut supply, procedure) = parse(include_str!("../input.txt"));
 
     supply.apply(procedure);
+
+    println!(
+        "Part One: {}",
+        supply.message(),
+    );
+
+    let (mut supply, procedure) = parse(include_str!("../input.txt"));
+
+    supply.apply_multiple(procedure);
 
     println!(
         "Part One: {}",
@@ -143,6 +164,47 @@ mod tests {
         ], supply.stacks);
 
         assert_eq!("CMZ", supply.message());
+    }
+
+    #[test]
+    fn test_move_multiple_crates() {
+        let mut supply = Supply {
+            stacks: vec![
+                vec!['Z', 'N'],
+                vec!['M', 'C', 'D'],
+                vec!['P'],
+            ],
+        };
+
+        supply.move_multiple_crates(1, 2, 1);
+        assert_eq!(vec![
+            vec!['Z', 'N', 'D'],
+            vec!['M', 'C'],
+            vec!['P'],
+        ], supply.stacks);
+
+        supply.move_multiple_crates(3, 1, 3);
+        assert_eq!(vec![
+            vec![],
+            vec!['M', 'C'],
+            vec!['P', 'Z', 'N', 'D'],
+        ], supply.stacks);
+
+        supply.move_multiple_crates(2, 2, 1);
+        assert_eq!(vec![
+            vec!['M', 'C'],
+            vec![],
+            vec!['P', 'Z', 'N', 'D'],
+        ], supply.stacks);
+
+        supply.move_multiple_crates(1, 1, 2);
+        assert_eq!(vec![
+            vec!['M'],
+            vec!['C'],
+            vec!['P', 'Z', 'N', 'D'],
+        ], supply.stacks);
+
+        assert_eq!("MCD", supply.message());
     }
 
     #[test]
