@@ -22,6 +22,11 @@ fn main() {
         "Part One: {}",
         packet_start_position(include_str!("../input.txt"), 4).unwrap(),
     );
+
+    println!(
+        "Part Two: {}",
+        packet_start_position(include_str!("../input.txt"), 14).unwrap(),
+    );
 }
 
 #[cfg(test)]
@@ -31,5 +36,7 @@ mod tests {
     #[test]
     fn test_packet_start_position() {
         assert_eq!(5, packet_start_position("bvwbjplbgvbhsrlpgdmjqwftvncz", 4).unwrap());
+
+        assert_eq!(19, packet_start_position("mjqjpqmgbljsphdztnvjfqwrcgsmlb", 14).unwrap());
     }
 }
